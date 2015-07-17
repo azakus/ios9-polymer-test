@@ -7,7 +7,7 @@
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-// @version 0.7.7
+// @version 0.7.7-e2f6f20
 window.WebComponents = window.WebComponents || {};
 
 (function(scope) {
@@ -3159,18 +3159,29 @@ if (WebComponents.flags.shadow) {
     "use strict";
     var Element = scope.wrappers.Element;
     var HTMLElement = scope.wrappers.HTMLElement;
-    var registerObject = scope.registerObject;
+    var registerWrapper = scope.registerWrapper;
     var defineWrapGetter = scope.defineWrapGetter;
+    var unsafeUnwrap = scope.unsafeUnwrap;
+    var wrap = scope.wrap;
+    var mixin = scope.mixin;
     var SVG_NS = "http://www.w3.org/2000/svg";
+    var OriginalSVGElement = window.SVGElement;
     var svgTitleElement = document.createElementNS(SVG_NS, "title");
-    var SVGTitleElement = registerObject(svgTitleElement);
-    var SVGElement = Object.getPrototypeOf(SVGTitleElement.prototype).constructor;
     if (!("classList" in svgTitleElement)) {
       var descr = Object.getOwnPropertyDescriptor(Element.prototype, "classList");
       Object.defineProperty(HTMLElement.prototype, "classList", descr);
       delete Element.prototype.classList;
     }
-    defineWrapGetter(SVGElement, "ownerSVGElement");
+    function SVGElement(node) {
+      Element.call(this, node);
+    }
+    SVGElement.prototype = Object.create(Element.prototype);
+    mixin(SVGElement.prototype, {
+      get ownerSVGElement() {
+        return wrap(unsafeUnwrap(this).ownerSVGElement);
+      }
+    });
+    registerWrapper(OriginalSVGElement, SVGElement, document.createElementNS(SVG_NS, "title"));
     scope.wrappers.SVGElement = SVGElement;
   })(window.ShadowDOMPolyfill);
   (function(scope) {
@@ -6692,11 +6703,9 @@ window.CustomElements.addModule(function(scope) {
   function upgrade(node, isAttached) {
     if (!node.__upgraded__ && node.nodeType === Node.ELEMENT_NODE) {
       var is = node.getAttribute("is");
-      var definition = scope.getRegisteredDefinition(is || node.localName);
+      var definition = scope.getRegisteredDefinition(node.localName) || scope.getRegisteredDefinition(is);
       if (definition) {
-        if (is && definition.tag == node.localName) {
-          return upgradeWithDefinition(node, definition, isAttached);
-        } else if (!is && !definition.extends) {
+        if (is && definition.tag == node.localName || !is && !definition.extends) {
           return upgradeWithDefinition(node, definition, isAttached);
         }
       }

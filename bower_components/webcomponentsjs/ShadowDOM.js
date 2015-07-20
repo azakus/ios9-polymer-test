@@ -7,7 +7,7 @@
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-// @version 0.7.7-e2f6f20
+// @version 0.7.7-d2161e0
 if (typeof WeakMap === "undefined") {
   (function() {
     var defineProperty = Object.defineProperty;
@@ -3311,20 +3311,27 @@ window.ShadowDOMPolyfill = {};
 
 (function(scope) {
   "use strict";
+  var Node = scope.wrappers.Node;
   var GetElementsByInterface = scope.GetElementsByInterface;
   var NonElementParentNodeInterface = scope.NonElementParentNodeInterface;
   var ParentNodeInterface = scope.ParentNodeInterface;
   var SelectorsInterface = scope.SelectorsInterface;
   var mixin = scope.mixin;
   var registerObject = scope.registerObject;
-  var DocumentFragment = registerObject(document.createDocumentFragment());
+  var registerWrapper = scope.registerWrapper;
+  var OriginalDocumentFragment = window.DocumentFragment;
+  function DocumentFragment(node) {
+    return Node.call(this, node);
+  }
+  DocumentFragment.prototype = Object.create(Node.prototype);
   mixin(DocumentFragment.prototype, ParentNodeInterface);
   mixin(DocumentFragment.prototype, SelectorsInterface);
   mixin(DocumentFragment.prototype, GetElementsByInterface);
   mixin(DocumentFragment.prototype, NonElementParentNodeInterface);
+  registerWrapper(OriginalDocumentFragment, DocumentFragment, document.createDocumentFragment());
+  scope.wrappers.DocumentFragment = DocumentFragment;
   var Comment = registerObject(document.createComment(""));
   scope.wrappers.Comment = Comment;
-  scope.wrappers.DocumentFragment = DocumentFragment;
 })(window.ShadowDOMPolyfill);
 
 (function(scope) {
